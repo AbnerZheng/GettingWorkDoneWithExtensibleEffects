@@ -48,7 +48,10 @@ object PathScan {
   def topNMonoid(n: Int): Monoid[PathScan] = new Monoid[PathScan] {
     def empty: PathScan = PathScan.empty
 
-    def combine(p1: PathScan, p2: PathScan): PathScan = ???
+    def combine(p1: PathScan, p2: PathScan): PathScan ={
+      val files = p1.largestFiles ++ p2.largestFiles
+      PathScan(files.take(n), p1.totalSize + p2.totalSize, p1.totalCount + p2.totalCount)
+    }
   }
 
 }
@@ -61,7 +64,7 @@ object FileSize {
     FileSize(file, Files.size(file))
   }
 
-  implicit val ordering: Ordering[FileSize] = Ordering.by[FileSize, Long  ](_.size).reverse
+  implicit val ordering: Ordering[FileSize] = Ordering.by[FileSize, Long](_.size).reverse
 
 }
 //I prefer an closed set of disjoint cases over a series of isX(): Boolean tests, as provided by the Java API

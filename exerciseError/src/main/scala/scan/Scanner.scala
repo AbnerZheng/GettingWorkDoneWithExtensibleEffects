@@ -37,20 +37,23 @@ object Scanner {
   def main(args: Array[String]): Unit = {
     val program = scanReport[R](args)
     
-    program.runReader(DefaultFilesystem: Filesystem).runEither.runAsync.runSyncUnsafe(1.minute) match {
+    program.runReader(DefaultFilesystem: Filesystem).runEither.runAsync.attempt
+      .runSyncUnsafe(1.minute).leftMap(_.toString).flatten match {
       case Right(report) => println(report)
       case Left(msg) => println(s"Scan failed: $msg")
     }
   }
 
-  def scanReport[R: _task: _filesystem](args: Array[String]): Eff[R, String] = for {
+  def scanReport[R: _task: _filesystem: _err](args: Array[String]): Eff[R, String] = for {
     base <- optionEither(args.lift(0), s"Path to scan must be specified.\n$Usage")
 
     topN <- {
       val n = args.lift(1).getOrElse("10")
       fromEither(n.parseInt.leftMap(_ => s"Number of files must be numeric: $n"))
     }
-    topNValid <- ???
+    topNValid <- if(topN >= 0)
+        topN.pureEff[R]
+      else left(s"Invalid number of files $topN")
 
     fs <- ask[R, Filesystem]
 
@@ -92,7 +95,7 @@ object Scanner {
 
 trait Filesystem {
 
-  def filePath(path: String): FilePath
+  def filePath(path: String):FilePath
 
   def length(file: File): Long
 
@@ -109,14 +112,14 @@ case object DefaultFilesystem extends Filesystem {
     else
       Other(path)
 
-  def length(file: File) = Files.size(Paths.get(file.path))
+  def length(file: File):Long = Files.size(Paths.get(file.path))
 
-  def listFiles(directory: Directory) = {
+  def listFiles(directory: Directory): List[FilePath] = {
     val files = Files.list(Paths.get(directory.path))
     try files.toScala[List].flatMap(path => filePath(path.toString) match {
       case Directory(path) => List(Directory(path))
       case File(path) => List(File(path))
-      case Other(path) => List.empty
+      case Other(_) => List.empty
     })
     finally files.close()
   }

@@ -22,7 +22,8 @@ import monix.execution.Scheduler.Implicits.global
 
 class ScannerSpec extends mutable.Specification {
 
-  case class MockFilesystem(directories: Map[Directory, List[FilePath]], fileSizes: Map[File, Long]) extends Filesystem {
+  case class MockFilesystem(directories: Map[Directory, List[FilePath]], fileSizes: Map[File, Long])
+    extends Filesystem {
 
     def length(file: File) = fileSizes.getOrElse(file, throw new IOException())
 
@@ -47,7 +48,13 @@ class ScannerSpec extends mutable.Specification {
     base -> List(subdir, base1, base2),
     subdir -> List(sub1, sub3)
   )
-  val fileSizes = Map(base1 -> 1L, base2 -> 2L, sub1 -> 1L, sub3 -> 3L)
+  val fileSizes = Map(
+    base1 -> 1L,
+    base2 -> 2L,
+    sub1 -> 1L,
+    sub3 -> 3L
+  )
+
   val fs = MockFilesystem(directories, fileSizes)
 
   type R = Fx.fx3[Task, Reader[Filesystem, ?], Reader[ScanConfig, ?]]
